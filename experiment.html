@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Experiment</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+
+  <!-- highlight.js -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" />
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+  <script defer src="js/viewer.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="index.html">← Back to <span class="accent">Experiments</span></a>
+      <button id="themeToggle" class="btn ghost" aria-label="Toggle theme">🌓</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <article class="code-article">
+      <h1 id="title" class="title"></h1>
+      <p id="desc" class="desc"></p>
+
+      <div class="code-actions">
+        <button id="copyBtn" class="btn">Copy Code</button>
+        <a id="rawBtn" class="btn ghost" download>Download .py</a>
+      </div>
+
+      <pre class="code-block"><code id="code" class="language-python"></code></pre>
+    </article>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>Syntax highlighting by highlight.js</p>
+    </div>
+  </footer>
+</body>
+</html>
