@@ -93,10 +93,16 @@ The project is designed for **learning, research, and showcasing on GitHub Pages
 ---
 
 ## 🚀 How to Use
-1. Open [GitHub Pages link] (after deployment).
-2. Browse experiments with pagination + animations.
-3. Click **“View Full Code”** for detailed implementations.
-4. Explore, learn, and adapt the code for your own projects.
+
+<p align="center">
+  <a href="https://frosty-8.github.io/GenAI-Experiments/" target="_blank">
+    <img src="https://img.shields.io/badge/🚀%20Open%20Demo-Click%20Here-brightgreen?style=for-the-badge" alt="Open Demo"/>
+  </a>
+</p>
+
+1. Browse experiments with pagination + animations.  
+2. Click **“View Full Code”** for detailed implementations.  
+3. Explore, learn, and adapt the code for your own projects.  
 
 ---
 
