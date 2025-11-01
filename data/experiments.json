@@ -3,257 +3,72 @@
     "id": 1,
     "title": "TensorFlow 2: Tensors & Graphs",
     "description": "Create/manipulate tensors, demonstrate eager execution, and a @tf.function graph.",
-    "code": "import tensorflow as tf\nimport numpy as np\n\n# --- Experiment 1: Tensor basics + graph ---\n\ndef tensor_creation():\n    print(\"=== Tensor Creation ===\")\n    scalar = tf.constant(5)\n    vector = tf.constant([1, 2, 3])\n    matrix = tf.constant([[1, 2], [3, 4]])\n    tensor_3d = tf.constant([[[1], [2]], [[3], [4]]])\n\n    print(\"Scalar:\", scalar)\n    print(\"Vector:\", vector)\n    print(\"Matrix:\", matrix)\n    print(\"Tensor-3D:\", tensor_3d)\n\n    np_array = np.array([[10, 20], [30, 40]])\n    tensor_from_np = tf.convert_to_tensor(np_array)\n    print(\"From NumPy:\", tensor_from_np)\n\ndef tensor_manipulation():\n    print(\"=== Tensor Manipulation ===\")\n    a = tf.ones((2, 3))\n    b = tf.zeros((2, 3))\n    c = tf.fill((2, 3), 7)\n\n    print(\"Ones:\", a)\n    print(\"Zeros:\", b)\n    print(\"Fill 7:\", c)\n\n    reshaped = tf.reshape(c, (3, 2))\n    print(\"Reshaped to (3,2):\\n\", reshaped)\n\n    print(\"First row of a:\", a[0])\n    print(\"Element (1,2):\", a[1, 2].numpy())\n\n    concat = tf.concat([a, b], axis=0)\n    print(\"Concat axis=0:\\n\", concat)\n\n\ndef math_ops():\n    print(\"=== Math Ops ===\")\n    x = tf.constant([2.0, 4.0, 6.0])\n    y = tf.constant([1.0, 3.0, 5.0])\n    print(\"x+y =\", tf.add(x, y))\n    print(\"x-y =\", tf.subtract(x, y))\n    print(\"x*y =\", tf.multiply(x, y))\n    print(\"x/y =\", tf.divide(x, y))\n    print(\"dot(x,y) =\", tf.tensordot(x, y, axes=1))\n    mat = tf.constant([[1], [2], [3]])\n    vec = tf.constant([4, 5, 6])\n    print(\"Broadcast add:\\n\", mat + vec)\n\n@tf.function\ndef compute_graph(a, b):\n    return tf.sqrt(tf.add(a ** 2, b ** 2))\n\n\ndef dynamic_sum(n):\n    total = tf.constant(0)\n    for i in range(n):\n        total += i\n        tf.print(\"Step\", i, \"Total\", total)\n    return total\n\n\ndef run_pipeline():\n    tensor_creation()\n    tensor_manipulation()\n    math_ops()\n    print(\"=== Graph ===\")\n    print(\"Hypotenuse:\", compute_graph(3.0, 4.0))\n    print(\"=== Eager ===\")\n    final_sum = dynamic_sum(5)\n    print(\"Final sum:\", final_sum.numpy())\n\nif __name__ == \"__main__\":\n    run_pipeline()\n"
+    "code": "import tensorflow as tf\nimport numpy as np\n\ndef tensor_creation():\n    print('=== Tensor Creation ===')\n    scalar = tf.constant(5)\n    vector = tf.constant([1, 2, 3])\n    matrix = tf.constant([[1, 2], [3, 4]])\n    tensor_3d = tf.constant([[[1], [2]], [[3], [4]]])\n    print('Scalar:', scalar)\n    print('Vector:', vector)\n    print('Matrix:', matrix)\n    print('Tensor-3D:', tensor_3d)\n    np_array = np.array([[10, 20], [30, 40]])\n    tensor_from_np = tf.convert_to_tensor(np_array)\n    print('From NumPy:', tensor_from_np)\n\ndef tensor_manipulation():\n    print('=== Tensor Manipulation ===')\n    a = tf.ones((2, 3))\n    b = tf.zeros((2, 3))\n    c = tf.fill((2, 3), 7)\n    print('Ones:', a)\n    print('Zeros:', b)\n    print('Fill 7:', c)\n    reshaped = tf.reshape(c, (3, 2))\n    print('Reshaped to (3,2):\\n', reshaped)\n    print('First row of a:', a[0])\n    print('Element (1,2):', a[1, 2].numpy())\n    concat = tf.concat([a, b], axis=0)\n    print('Concat axis=0:\\n', concat)\n\ndef math_ops():\n    print('=== Math Ops ===')\n    x = tf.constant([2.0, 4.0, 6.0])\n    y = tf.constant([1.0, 3.0, 5.0])\n    print('x+y =', tf.add(x, y))\n    print('x-y =', tf.subtract(x, y))\n    print('x*y =', tf.multiply(x, y))\n    print('x/y =', tf.divide(x, y))\n    print('dot(x,y) =', tf.tensordot(x, y, axes=1))\n    mat = tf.constant([[1], [2], [3]])\n    vec = tf.constant([4, 5, 6])\n    print('Broadcast add:\\n', mat + vec)\n\n@tf.function\ndef compute_graph(a, b):\n    return tf.sqrt(tf.add(a ** 2, b ** 2))\n\ndef dynamic_sum(n):\n    total = tf.constant(0)\n    for i in range(n):\n        total += i\n        tf.print('Step', i, 'Total', total)\n    return total\n\ndef run_pipeline():\n    tensor_creation()\n    tensor_manipulation()\n    math_ops()\n    print('=== Graph ===')\n    print('Hypotenuse:', compute_graph(3.0, 4.0))\n    print('=== Eager ===')\n    final_sum = dynamic_sum(5)\n    print('Final sum:', final_sum.numpy())\n\nif __name__ == '__main__':\n    run_pipeline()"
   },
   {
     "id": 2,
     "title": "Preprocess: Missing, Normalize, Encode",
-    "description": "Clean small dataset with Pandas/NumPy; handle missing, normalize, and encode categorials.",
-    "code": "import pandas as pd\nimport numpy as np\n\n# --- Experiment 2: Basic preprocessing ---\n\ndef handle_missing(df):\n    df = df.copy()\n    for col in df.select_dtypes(include=[\"float\", \"int\"]).columns:\n        df[col] = df[col].fillna(df[col].mean())\n    for col in df.select_dtypes(include=[\"object\"]).columns:\n        df[col] = df[col].fillna(\"\")\n    return df\n\ndef normalize_numeric(df):\n    df = df.copy()\n    for col in df.select_dtypes(include=[\"float\", \"int\"]).columns:\n        mu, sigma = df[col].mean(), df[col].std() or 1\n        df[col] = (df[col] - mu) / sigma\n    return df\n\ndef encode_categoricals(df):\n    df = df.copy()\n    cat_cols = df.select_dtypes(include=[\"object\"]).columns\n    return pd.get_dummies(df, columns=cat_cols, drop_first=True)\n\ndef run_pipeline():\n    data = {\n        \"text\": [\"hello\", None, \"world\", \"ai\"],\n        \"category\": [\"A\", \"B\", None, \"A\"],\n        \"value\": [1.0, 2.0, np.nan, 4.0]\n    }\n    df = pd.DataFrame(data)\n    df = handle_missing(df)\n    df = normalize_numeric(df)\n    df = encode_categoricals(df)\n    print(df)\n\nif __name__ == \"__main__\":\n    run_pipeline()\n"
+    "description": "Clean small dataset with Pandas/NumPy; handle missing, normalize, and encode categoricals.",
+    "code": "import pandas as pd\nimport numpy as np\n\ndef handle_missing(df):\n    df = df.copy()\n    for col in df.select_dtypes(include=['float', 'int']).columns:\n        df[col] = df[col].fillna(df[col].mean())\n    for col in df.select_dtypes(include=['object']).columns:\n        df[col] = df[col].fillna('')\n    return df\n\ndef normalize_numeric(df):\n    df = df.copy()\n    for col in df.select_dtypes(include=['float', 'int']).columns:\n        mu, sigma = df[col].mean(), df[col].std() or 1\n        df[col] = (df[col] - mu) / sigma\n    return df\n\ndef encode_categoricals(df):\n    df = df.copy()\n    cat_cols = df.select_dtypes(include=['object']).columns\n    return pd.get_dummies(df, columns=cat_cols, drop_first=True)\n\ndef run_pipeline():\n    data = {'text': ['hello', None, 'world', 'ai'], 'category': ['A', 'B', None, 'A'], 'value': [1.0, 2.0, np.nan, 4.0]}\n    df = pd.DataFrame(data)\n    df = handle_missing(df)\n    df = normalize_numeric(df)\n    df = encode_categoricals(df)\n    print(df)\n\nif __name__ == '__main__':\n    run_pipeline()"
   },
   {
     "id": 3,
     "title": "Visualize Distributions & Correlations",
     "description": "Plot histograms, scatter, and correlation heatmap via Matplotlib/Seaborn.",
-    "code": "import pandas as pd\nimport matplotlib.pyplot as plt\nimport seaborn as sns\n\n# --- Experiment 3: Visualizations ---\n\ndef make_data():\n    return pd.DataFrame({\n        \"feature1\": [1,2,3,4,5,6,7,8,9,10],\n        \"feature2\": [2,4,1,8,7,3,6,5,9,2],\n        \"feature3\": [0.2,0.4,0.4,0.9,0.1,0.5,0.8,0.6,0.3,0.7]\n    })\n\ndef run_pipeline():\n    df = make_data()\n\n    plt.figure()\n    plt.hist(df[\"feature1\"], bins=6)\n    plt.title(\"Histogram: feature1\")\n    plt.show()\n\n    plt.figure()\n    sns.scatterplot(x=\"feature1\", y=\"feature2\", data=df)\n    plt.title(\"Scatter: feature1 vs feature2\")\n    plt.show()\n\n    plt.figure()\n    sns.heatmap(df.corr(), annot=True, cmap=\"coolwarm\")\n    plt.title(\"Correlation Heatmap\")\n    plt.show()\n\nif __name__ == \"__main__\":\n    run_pipeline()\n"
+    "code": "import pandas as pd\nimport matplotlib.pyplot as plt\nimport seaborn as sns\n\ndef make_data():\n    return pd.DataFrame({'feature1': [1,2,3,4,5,6,7,8,9,10], 'feature2': [2,4,1,8,7,3,6,5,9,2], 'feature3': [0.2,0.4,0.4,0.9,0.1,0.5,0.8,0.6,0.3,0.7]})\n\ndef run_pipeline():\n    df = make_data()\n    plt.figure(); plt.hist(df['feature1'], bins=6); plt.title('Histogram: feature1'); plt.show()\n    plt.figure(); sns.scatterplot(x='feature1', y='feature2', data=df); plt.title('Scatter: feature1 vs feature2'); plt.show()\n    plt.figure(); sns.heatmap(df.corr(), annot=True, cmap='coolwarm'); plt.title('Correlation Heatmap'); plt.show()\n\nif __name__ == '__main__':\n    run_pipeline()"
   },
   {
     "id": 4,
     "title": "Word2Vec + FAISS Similarity",
     "description": "Train Word2Vec on a tiny corpus, then run FAISS nearest-neighbor search.",
-    "code": "import numpy as np\nimport faiss\nfrom gensim.models import Word2Vec\n\n# --- Experiment 4: Embeddings with FAISS ---\n\ndef run_pipeline():\n    sentences = [[\"hello\", \"world\"], [\"ai\", \"is\", \"great\"], [\"hello\", \"ai\"], [\"world\", \"of\", \"ml\"]]\n    w2v = Word2Vec(sentences, vector_size=50, min_count=1, workers=2)\n\n    # Build FAISS index\n    vectors = w2v.wv.vectors.astype(\"float32\")\n    index = faiss.IndexFlatL2(vectors.shape[1])\n    index.add(vectors)\n\n    q = w2v.wv[\"hello\"].reshape(1, -1).astype(\"float32\")\n    D, I = index.search(q, 3)\n    print(\"Query: 'hello'\")\n    print(\"Neighbors:\", [w2v.wv.index_to_key[i] for i in I[0]])\n\nif __name__ == \"__main__\":\n    run_pipeline()\n"
+    "code": "import numpy as np\nimport faiss\nfrom gensim.models import Word2Vec\n\ndef run_pipeline():\n    sentences = [['hello', 'world'], ['ai', 'is', 'great'], ['hello', 'ai'], ['world', 'of', 'ml']]\n    w2v = Word2Vec(sentences, vector_size=50, min_count=1, workers=2)\n    vectors = w2v.wv.vectors.astype('float32')\n    index = faiss.IndexFlatL2(vectors.shape[1])\n    index.add(vectors)\n    q = w2v.wv['hello'].reshape(1, -1).astype('float32')\n    D, I = index.search(q, 3)\n    print('Query: hello')\n    print('Neighbors:', [w2v.wv.index_to_key[i] for i in I[0]])\n\nif __name__ == '__main__':\n    run_pipeline()"
   },
   {
     "id": 5,
     "title": "DDPM Inference on MNIST (TF2/Colab)",
     "description": "Colab-ready demo to load a small DDPM and generate MNIST-like samples.",
-    "code": "# --- Experiment 5: DDPM Inference on MNIST (TensorFlow 2, Colab) ---\n# This is a simplified sketch; in Colab, install deps and load a pre-trained DDPM.\n\nimport tensorflow as tf\nimport numpy as np\nimport matplotlib.pyplot as plt\n\n# Pseudo-model interface (load your actual checkpoint/model here)\nclass DummyDDPM(tf.keras.Model):\n    def __init__(self, img_shape=(28,28,1)):\n        super().__init__()\n        self.img_shape = img_shape\n    def sample(self, n=16):\n        # Replace with real DDPM reverse sampling\n        return tf.random.uniform((n,) + self.img_shape)\n\ndef run_pipeline():\n    model = DummyDDPM()\n    imgs = model.sample(16).numpy()\n    fig, axes = plt.subplots(4,4, figsize=(4,4))\n    for ax, im in zip(axes.flatten(), imgs):\n        ax.imshow(im.squeeze(), cmap='gray')\n        ax.axis('off')\n    plt.tight_layout(); plt.show()\n\nif __name__ == '__main__':\n    run_pipeline()\n"
+    "code": "import tensorflow as tf\nimport numpy as np\nimport matplotlib.pyplot as plt\n\nclass DummyDDPM(tf.keras.Model):\n    def __init__(self, img_shape=(28,28,1)):\n        super().__init__()\n        self.img_shape = img_shape\n    def sample(self, n=16):\n        return tf.random.uniform((n,) + self.img_shape)\n\ndef run_pipeline():\n    model = DummyDDPM()\n    imgs = model.sample(16).numpy()\n    fig, axes = plt.subplots(4,4, figsize=(4,4))\n    for ax, im in zip(axes.flatten(), imgs):\n        ax.imshow(im.squeeze(), cmap='gray')\n        ax.axis('off')\n    plt.tight_layout(); plt.show()\n\nif __name__ == '__main__':\n    run_pipeline()"
   },
   {
     "id": 6,
     "title": "CLIP-Guided Diffusion (Text→Image)",
     "description": "Sketch of CLIP-guided diffusion generation and optional FID evaluation.",
-    "code": "# --- Experiment 6: CLIP-guided diffusion (outline) ---\n# This is a compact illustrative outline; use real models in Colab.\n\nimport torch\n\ndef generate_clip_guided(prompt: str):\n    # Pseudocode placeholder; integrate with an open-source CLIP+diffusion pipeline.\n    torch.manual_seed(0)\n    print(f\"[Demo] Generating images for: {prompt}\")\n    return [f\"fake_image_{i}.png\" for i in range(4)]\n\n\ndef run_pipeline():\n    imgs = generate_clip_guided(\"a watercolor fox in the forest\")\n    print(\"Generated:\", imgs)\n\nif __name__ == '__main__':\n    run_pipeline()\n"
+    "code": "import torch\n\ndef generate_clip_guided(prompt: str):\n    torch.manual_seed(0)\n    print(f'[Demo] Generating images for: {prompt}')\n    return [f'fake_image_{i}.png' for i in range(4)]\n\ndef run_pipeline():\n    imgs = generate_clip_guided('a watercolor fox in the forest')\n    print('Generated:', imgs)\n\nif __name__ == '__main__':\n    run_pipeline()"
   },
   {
     "id": 7,
     "title": "LoRA Fine-Tuning DistilGPT-2",
     "description": "Parameter-efficient fine-tuning with PEFT/LoRA and evaluate perplexity.",
-    "code": "import torch\nfrom transformers import AutoTokenizer, AutoModelForCausalLM, TrainingArguments, Trainer\nfrom datasets import load_dataset\nfrom peft import LoraConfig, get_peft_model, TaskType\nimport evaluate\n\n# --- Experiment 7: LoRA fine-tune DistilGPT-2 ---\n\ndef load_corpus():\n    return load_dataset(\"wikitext\", \"wikitext-2-raw-v1\", split=\"train[:1%]\")\n\ndef tokenize_corpus(ds, tok, block_size=128):\n    def fn(batch):\n        out = tok(batch[\"text\"], truncation=True, padding=\"max_length\", max_length=block_size)\n        out[\"labels\"] = out[\"input_ids\"].copy()\n        return out\n    return ds.map(fn, batched=True)\n\ndef setup_model():\n    name = \"distilgpt2\"\n    tok = AutoTokenizer.from_pretrained(name)\n    model = AutoModelForCausalLM.from_pretrained(name)\n    lora = LoraConfig(task_type=TaskType.CAUSAL_LM, r=8, lora_alpha=16, lora_dropout=0.1)\n    model = get_peft_model(model, lora)\n    return model, tok\n\ndef train_model(model, tok, train_ds):\n    args = TrainingArguments(output_dir=\"./results\", per_device_train_batch_size=4, num_train_epochs=1, logging_steps=10, save_strategy=\"no\", report_to=\"none\")\n    trainer = Trainer(model=model, args=args, train_dataset=train_ds, tokenizer=tok)\n    trainer.train(); return model\n\ndef evaluate_model(model, tok, raw_ds):\n    ppl = evaluate.load(\"perplexity\")\n    texts = raw_ds[:50][\"text\"]\n    res = ppl.compute(model_id=\"distilgpt2\", predictions=texts)\n    print(\"Perplexity:\", res[\"perplexity\"])  # proxy\n\ndef generate(model, tok, prompt=\"Once upon a time\"):\n    ids = tok(prompt, return_tensors=\"pt\")\n    out = model.generate(**ids, max_length=60, do_sample=True, top_k=50, top_p=0.95)\n    print(tok.decode(out[0], skip_special_tokens=True))\n\ndef run_pipeline():\n    raw = load_corpus()\n    model, tok = setup_model()\n    tokenized = tokenize_corpus(raw, tok)\n    model = train_model(model, tok, tokenized)\n    evaluate_model(model, tok, raw)\n    generate(model, tok)\n\nif __name__ == \"__main__\":\n    run_pipeline()\n"
+    "code": "import torch\nfrom transformers import AutoTokenizer, AutoModelForCausalLM, TrainingArguments, Trainer\nfrom datasets import load_dataset\nfrom peft import LoraConfig, get_peft_model, TaskType\nimport evaluate\n\ndef load_corpus():\n    return load_dataset('wikitext', 'wikitext-2-raw-v1', split='train[:1%]')\n\ndef tokenize_corpus(ds, tok, block_size=128):\n    def fn(batch):\n        out = tok(batch['text'], truncation=True, padding='max_length', max_length=block_size)\n        out['labels'] = out['input_ids'].copy()\n        return out\n    return ds.map(fn, batched=True)\n\ndef setup_model():\n    name = 'distilgpt2'\n    tok = AutoTokenizer.from_pretrained(name)\n    model = AutoModelForCausalLM.from_pretrained(name)\n    lora = LoraConfig(task_type=TaskType.CAUSAL_LM, r=8, lora_alpha=16, lora_dropout=0.1)\n    model = get_peft_model(model, lora)\n    return model, tok\n\ndef train_model(model, tok, train_ds):\n    args = TrainingArguments(output_dir='./results', per_device_train_batch_size=4, num_train_epochs=1, logging_steps=10, save_strategy='no', report_to='none')\n    trainer = Trainer(model=model, args=args, train_dataset=train_ds, tokenizer=tok)\n    trainer.train(); return model\n\ndef evaluate_model(model, tok, raw_ds):\n    ppl = evaluate.load('perplexity')\n    texts = raw_ds[:50]['text']\n    res = ppl.compute(model_id='distilgpt2', predictions=texts)\n    print('Perplexity:', res['perplexity'])\n\ndef generate(model, tok, prompt='Once upon a time'):\n    ids = tok(prompt, return_tensors='pt')\n    out = model.generate(**ids, max_length=60, do_sample=True, top_k=50, top_p=0.95)\n    print(tok.decode(out[0], skip_special_tokens=True))\n\ndef run_pipeline():\n    raw = load_corpus()\n    model, tok = setup_model()\n    tokenized = tokenize_corpus(raw, tok)\n    model = train_model(model, tok, tokenized)\n    evaluate_model(model, tok, raw)\n    generate(model, tok)\n\nif __name__ == '__main__':\n    run_pipeline()"
   },
   {
     "id": 8,
     "title": "Prompt Design + ROUGE/BLEU",
     "description": "Summarization & QA prompts; evaluate with ROUGE and BLEU.",
-    "code": "
-from transformers import pipeline, AutoTokenizer, AutoModelForSeq2SeqLM
-from rouge_score import rouge_scorer
-from rich import print as rprint
-
-def run_summarization():
-    model_name = "t5-small"
-    summarizer = pipeline("summarization", model=model_name)
-
-    text = (
-        "Machine learning is a field of artificial intelligence that uses statistical "
-        "techniques to give computer systems the ability to learn from data. It has "
-        "applications across many domains."
-    )
-
-    summary = summarizer(text, max_length=50, min_length=10)[0]["summary_text"]
-
-    scorer = rouge_scorer.RougeScorer(["rouge1", "rougeL"], use_stemmer=True)
-    ref = "Machine learning enables computers to learn from data and is widely used."
-    score = scorer.score(ref, summary)
-
-    rprint("Summary:", summary)
-    rprint("ROUGE scores:", score)
-
-
-if __name__ == "__main__":
-    run_summarization()
-"
+    "code": "from transformers import pipeline\nfrom rouge_score import rouge_scorer\nfrom rich import print as rprint\n\ndef run_summarization():\n    model_name = 't5-small'\n    summarizer = pipeline('summarization', model=model_name)\n    text = 'Machine learning is a field of artificial intelligence that uses statistical techniques to give computer systems the ability to learn from data. It has applications across many domains.'\n    summary = summarizer(text, max_length=50, min_length=10)[0]['summary_text']\n    scorer = rouge_scorer.RougeScorer(['rouge1', 'rougeL'], use_stemmer=True)\n    ref = 'Machine learning enables computers to learn from data and is widely used.'\n    score = scorer.score(ref, summary)\n    rprint('Summary:', summary)\n    rprint('ROUGE scores:', score)\n\nif __name__ == '__main__':\n    run_summarization()"
   },
   {
     "id": 9,
     "title": "RAG: FAISS + Small LLM",
     "description": "Dense retrieval with all-MiniLM-L6-v2 + FLAN-T5 generation.",
-    "code": "
-from sentence_transformers import SentenceTransformer
-import faiss
-from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
-import numpy as np
-from rich import print as rprint
-
-def build_index(docs):
-    model = SentenceTransformer('all-MiniLM-L6-v2')
-    embeddings = model.encode(docs, convert_to_numpy=True)
-    d = embeddings.shape[1]
-    index = faiss.IndexFlatL2(d)
-    index.add(embeddings)
-    return index, embeddings, model
-
-
-def retrieve(index, model, query, k=2):
-    q_emb = model.encode([query], convert_to_numpy=True)
-    D, I = index.search(q_emb, k)
-    return I[0]
-
-
-def answer_question(question, docs, index, embed_model):
-    ids = retrieve(index, embed_model, question, k=2)
-    context = "\n".join([docs[i] for i in ids])
-    prompt = f"Context: {context}\nQuestion: {question}\nAnswer:"
-    model_name = "google/flan-t5-small"
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
-    model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
-    inputs = tokenizer(prompt, return_tensors='pt', truncation=True, max_length=512)
-    out = model.generate(**inputs, max_new_tokens=64)
-    return tokenizer.decode(out[0], skip_special_tokens=True)
-
-
-def main():
-    docs = [
-        "The Nile is the longest river in Africa and flows through Egypt.",
-        "Mount Everest is the highest mountain in the world located in the Himalayas.",
-        "Python is a popular programming language for data science."
-    ]
-    index, embeddings, s_model = build_index(docs)
-    q = "Which language is popular for data science"
-    ans = answer_question(q, docs, index, s_model)
-    rprint("Question:", q)
-    rprint("Answer:", ans)
-
-
-if __name__ == '__main__':
-    main()
-"
+    "code": "from sentence_transformers import SentenceTransformer\nimport faiss\nfrom transformers import AutoTokenizer, AutoModelForSeq2SeqLM\nimport numpy as np\nfrom rich import print as rprint\n\ndef build_index(docs):\n    model = SentenceTransformer('all-MiniLM-L6-v2')\n    embeddings = model.encode(docs, convert_to_numpy=True)\n    d = embeddings.shape[1]\n    index = faiss.IndexFlatL2(d)\n    index.add(embeddings)\n    return index, embeddings, model\n\ndef retrieve(index, model, query, k=2):\n    q_emb = model.encode([query], convert_to_numpy=True)\n    D, I = index.search(q_emb, k)\n    return I[0]\n\ndef answer_question(question, docs, index, embed_model):\n    ids = retrieve(index, embed_model, question, k=2)\n    context = '\\n'.join([docs[i] for i in ids])\n    prompt = f'Context: {context}\\nQuestion: {question}\\nAnswer:'\n    model_name = 'google/flan-t5-small'\n    tokenizer = AutoTokenizer.from_pretrained(model_name)\n    model = AutoModelForSeq2SeqLM.from_pretrained(model_name)\n    inputs = tokenizer(prompt, return_tensors='pt', truncation=True, max_length=512)\n    out = model.generate(**inputs, max_new_tokens=64)\n    return tokenizer.decode(out[0], skip_special_tokens=True)\n\ndef main():\n    docs = ['The Nile is the longest river in Africa and flows through Egypt.', 'Mount Everest is the highest mountain in the world located in the Himalayas.', 'Python is a popular programming language for data science.']\n    index, embeddings, s_model = build_index(docs)\n    q = 'Which language is popular for data science'\n    ans = answer_question(q, docs, index, s_model)\n    rprint('Question:', q)\n    rprint('Answer:', ans)\n\nif __name__ == '__main__':\n    main()"
   },
   {
     "id": 10,
     "title": "Optimization: Pruning & Quantization",
     "description": "Apply pruning and dynamic quantization to DistilBERT and compare speed/size.",
-    "code": "
-import time
-import torch
-
-
-class TinyClassifier(torch.nn.Module):
-    def __init__(self, dim=128, hidden=64, out=2):
-        super().__init__()
-        self.net = torch.nn.Sequential(
-            torch.nn.Linear(dim, hidden),
-            torch.nn.ReLU(),
-            torch.nn.Linear(hidden, out)
-        )
-
-    def forward(self, x):
-        return self.net(x)
-
-
-def benchmark():
-    torch.manual_seed(0)
-    model = TinyClassifier(dim=128)
-    model.eval()
-
-    # Dynamic quantization on CPU
-    qmodel = torch.quantization.quantize_dynamic(model, {torch.nn.Linear}, dtype=torch.qint8)
-
-    # Random input
-    inputs = torch.randn(1, 128)
-
-    # Warmup
-    for _ in range(10):
-        _ = qmodel(inputs)
-
-    # Timed runs
-    iters = 100
-    t0 = time.time()
-    for _ in range(iters):
-        _ = qmodel(inputs)
-    t1 = time.time()
-    print(f"Avg inference time (quantized tiny model) = {(t1-t0)/iters*1000:.2f} ms")
-
-
-if __name__ == '__main__':
-    benchmark()
-"
+    "code": "import time\nimport torch\n\nclass TinyClassifier(torch.nn.Module):\n    def __init__(self, dim=128, hidden=64, out=2):\n        super().__init__()\n        self.net = torch.nn.Sequential(\n            torch.nn.Linear(dim, hidden),\n            torch.nn.ReLU(),\n            torch.nn.Linear(hidden, out)\n        )\n    def forward(self, x):\n        return self.net(x)\n\ndef benchmark():\n    torch.manual_seed(0)\n    model = TinyClassifier(dim=128)\n    model.eval()\n    qmodel = torch.quantization.quantize_dynamic(model, {torch.nn.Linear}, dtype=torch.qint8)\n    inputs = torch.randn(1, 128)\n    for _ in range(10):\n        _ = qmodel(inputs)\n    iters = 100\n    t0 = time.time()\n    for _ in range(iters):\n        _ = qmodel(inputs)\n    t1 = time.time()\n    print(f'Avg inference time (quantized tiny model) = {(t1-t0)/iters*1000:.2f} ms')\n\nif __name__ == '__main__':\n    benchmark()"
   },
   {
     "id": 11,
     "title": "Bias Analysis + Output Filtering",
     "description": "Probe GPT-2 generations for gender terms and mitigate via neutral replacements.",
-    "code": "
-from transformers import AutoModelForCausalLM, AutoTokenizer
-from rich import print as rprint
-
-def generate(prompt):
-    model_name = "distilgpt2"
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
-    model = AutoModelForCausalLM.from_pretrained(model_name)
-    inputs = tokenizer(prompt, return_tensors='pt')
-    out = model.generate(**inputs, max_new_tokens=30)
-    return tokenizer.decode(out[0], skip_special_tokens=True)
-
-
-def is_biased(text, blocklist=None):
-    if blocklist is None:
-        blocklist = ["stereotype", "inferior", "superior"]
-    lower = text.lower()
-    return any(b in lower for b in blocklist)
-
-
-def main():
-    prompts = [
-        "The nurse said that",
-        "The programmer who",
-        "The leader of the country is"
-    ]
-    for p in prompts:
-        out = generate(p)
-        rprint("Prompt:", p)
-        rprint("Output:", out)
-        if is_biased(out):
-            rprint("-> Detected potential bias; applying filter (redact)")
-            for b in ["stereotype", "inferior", "superior"]:
-                out = out.replace(b, "[REDACTED]")
-            rprint("Filtered:", out)
-        rprint("---"*20)
-
-
-if __name__ == '__main__':
-    main()
-"
+    "code": "from transformers import AutoModelForCausalLM, AutoTokenizer\n\ndef generate(prompt):\n    model_name = 'distilgpt2'\n    tokenizer = AutoTokenizer.from_pretrained(model_name)\n    model = AutoModelForCausalLM.from_pretrained(model_name)\n    inputs = tokenizer(prompt, return_tensors='pt')\n    out = model.generate(**inputs, max_new_tokens=30)\n    return tokenizer.decode(out[0], skip_special_tokens=True)\n\ndef is_biased(text, blocklist=None):\n    if blocklist is None:\n        blocklist = ['stereotype', 'inferior', 'superior']\n    lower = text.lower()\n    return any(b in lower for b in blocklist)\n\ndef main():\n    prompts = [\n        'The nurse said that',\n        'The programmer who',\n        'The leader of the country is'\n    ]\n    for p in prompts:\n        out = generate(p)\n        print('Prompt:', p)\n        print('Output:', out)\n        if is_biased(out):\n            print('-> Detected potential bias; applying filter (redact)')\n            for b in ['stereotype', 'inferior', 'superior']:\n                out = out.replace(b, '[REDACTED]')\n            print('Filtered:', out)\n        print('---')\n\nif __name__ == '__main__':\n    main()"
   },
   {
     "id": 12,
     "title": "Autonomous Multi-Agent Simulation",
     "description": "Simple grid world with agents exploring, harvesting, and sharing knowledge; prints metrics.",
-    "code": "
-import random
-
-def simulate(steps=20):
-    actions = ["cooperate", "defect"]
-    score = {"A": 0, "B": 0}
-    history = []
-
-    for t in range(steps):
-        a1, a2 = random.choice(actions), random.choice(actions)
-        if (a1, a2) == ("cooperate", "cooperate"):
-            score["A"] += 3; score["B"] += 3
-        elif (a1, a2) == ("cooperate", "defect"):
-            score["A"] += 0; score["B"] += 5
-        elif (a1, a2) == ("defect", "cooperate"):
-            score["A"] += 5; score["B"] += 0
-        else:
-            score["A"] += 1; score["B"] += 1
-        history.append((t, a1, a2, dict(score)))
-
-    return history
-
-
-if __name__ == "__main__":
-    for h in simulate(20):
-        print(h)"
+    "code": "import random\n\ndef simulate(steps=20):\n    actions = ['cooperate', 'defect']\n    score = {'A': 0, 'B': 0}\n    history = []\n    for t in range(steps):\n        a1, a2 = random.choice(actions), random.choice(actions)\n        if (a1, a2) == ('cooperate', 'cooperate'):\n            score['A'] += 3; score['B'] += 3\n        elif (a1, a2) == ('cooperate', 'defect'):\n            score['A'] += 0; score['B'] += 5\n        elif (a1, a2) == ('defect', 'cooperate'):\n            score['A'] += 5; score['B'] += 0\n        else:\n            score['A'] += 1; score['B'] += 1\n        history.append((t, a1, a2, dict(score)))\n    return history\n\nif __name__ == '__main__':\n    for h in simulate(20):\n        print(h)"
   }
 ]
