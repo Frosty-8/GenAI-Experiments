@@ -45,30 +45,215 @@
     "id": 8,
     "title": "Prompt Design + ROUGE/BLEU",
     "description": "Summarization & QA prompts; evaluate with ROUGE and BLEU.",
-    "code": "from transformers import pipeline\nfrom datasets import load_dataset\nimport evaluate\n\n# --- Experiment 8: Prompting + metrics ---\n\ndef load_data():\n    sum_ds = load_dataset(\"cnn_dailymail\", \"3.0.0\", split=\"test[:1%]\")\n    qa_ds = load_dataset(\"squad\", split=\"validation[:1%]\")\n    return sum_ds, qa_ds\n\ndef setup():\n    summarizer = pipeline(\"summarization\", model=\"facebook/bart-large-cnn\")\n    qa = pipeline(\"question-answering\", model=\"distilbert-base-cased-distilled-squad\")\n    return summarizer, qa\n\ndef test_prompts(summarizer, qa, sds, qads):\n    text = sds[0][\"article\"]\n    hyp = summarizer(text, max_length=60, min_length=30, do_sample=False)[0][\"summary_text\"]\n    ref = sds[0][\"highlights\"]\n\n    ctx = qads[0][\"context\"]; q = qads[0][\"question\"]; gold = qads[0][\"answers\"][\"text\"][0]\n    pred = qa(question=q, context=ctx)[\"answer\"]\n    return hyp, ref, pred, gold\n\ndef evaluate_outputs(hyp, ref, pred, gold):\n    rouge = evaluate.load(\"rouge\"); bleu = evaluate.load(\"bleu\")\n    print(\"ROUGE:\", rouge.compute(predictions=[hyp], references=[ref]))\n    print(\"BLEU:\", bleu.compute(predictions=[pred.split()], references=[[gold.split()]]))\n\ndef run_pipeline():\n    sds, qads = load_data(); summarizer, qa = setup()\n    hyp, ref, pred, gold = test_prompts(summarizer, qa, sds, qads)\n    evaluate_outputs(hyp, ref, pred, gold)\n\nif __name__ == \"__main__\":\n    run_pipeline()\n"
+    "code": "
+from transformers import pipeline, AutoTokenizer, AutoModelForSeq2SeqLM
+from rouge_score import rouge_scorer
+from rich import print as rprint
+
+def run_summarization():
+    model_name = "t5-small"
+    summarizer = pipeline("summarization", model=model_name)
+
+    text = (
+        "Machine learning is a field of artificial intelligence that uses statistical "
+        "techniques to give computer systems the ability to learn from data. It has "
+        "applications across many domains."
+    )
+
+    summary = summarizer(text, max_length=50, min_length=10)[0]["summary_text"]
+
+    scorer = rouge_scorer.RougeScorer(["rouge1", "rougeL"], use_stemmer=True)
+    ref = "Machine learning enables computers to learn from data and is widely used."
+    score = scorer.score(ref, summary)
+
+    rprint("Summary:", summary)
+    rprint("ROUGE scores:", score)
+
+
+if __name__ == "__main__":
+    run_summarization()
+"
   },
   {
     "id": 9,
     "title": "RAG: FAISS + Small LLM",
     "description": "Dense retrieval with all-MiniLM-L6-v2 + FLAN-T5 generation.",
-    "code": "import faiss, torch, numpy as np\nfrom typing import List, Dict\nfrom datasets import Dataset\nfrom sentence_transformers import SentenceTransformer\nfrom transformers import AutoTokenizer, AutoModelForSeq2SeqLM\n\n# --- Experiment 9: RAG ---\n\ndef load_corpus():\n    return [\n        {\"id\":\"d1\",\"title\":\"Transformers\",\"text\":\"Transformers use self-attention to process sequences.\"},\n        {\"id\":\"d2\",\"title\":\"FAISS\",\"text\":\"FAISS enables efficient similarity search on dense vectors.\"},\n        {\"id\":\"d3\",\"title\":\"Sentence Embeddings\",\"text\":\"all-MiniLM-L6-v2 gives strong sentence embeddings.\"},\n        {\"id\":\"d4\",\"title\":\"LoRA\",\"text\":\"LoRA trains low-rank adapters for large models efficiently.\"},\n        {\"id\":\"d5\",\"title\":\"Stable Diffusion\",\"text\":\"Stable Diffusion generates images from text prompts.\"}\n    ]\n\ndef prepare(docs):\n    rows=[]\n    for d in docs:\n        rows.append({\"id\":d[\"id\"],\"title\":d[\"title\"],\"chunk_id\":d[\"id\"]+\"_0\",\"text\":d[\"text\"]})\n    return Dataset.from_list(rows)\n\ndef embed(texts):\n    m = SentenceTransformer(\"sentence-transformers/all-MiniLM-L6-v2\")\n    E = m.encode(texts, convert_to_numpy=True, normalize_embeddings=True).astype(\"float32\")\n    return E\n\ndef build_index(E):\n    idx = faiss.IndexFlatIP(E.shape[1]); idx.add(E); return idx\n\ndef retrieve(query, ds, idx):\n    q = embed([query])\n    D,I = idx.search(q, 3)\n    out=[]\n    for s,i in zip(D[0],I[0]):\n        row = ds[int(i)]; out.append({\"score\":float(s),\"title\":row[\"title\"],\"text\":row[\"text\"]})\n    return out\n\ndef load_llm():\n    tok = AutoTokenizer.from_pretrained(\"google/flan-t5-small\")\n    model = AutoModelForSeq2SeqLM.from_pretrained(\"google/flan-t5-small\")\n    return tok, model\n\ndef build_prompt(q, ctxs):\n    ctx = \"\\n\".join([f\"[${title}] {text}\".replace(\"$\", r\"Title: \").format(title=c[\"title\"], text=c[\"text\"]) for c in ctxs])\n    return f\"Use ONLY context to answer.\\nContext:\\n{ctx}\\nQuestion: {q}\\nAnswer:\"\n\ndef answer(tok, model, prompt):\n    ids = tok(prompt, return_tensors=\"pt\")\n    out = model.generate(**ids, max_new_tokens=128)\n    return tok.decode(out[0], skip_special_tokens=True)\n\ndef run_pipeline():\n    docs = load_corpus(); ds = prepare(docs); E = embed(ds[\"text\"]); idx = build_index(E)\n    tok, llm = load_llm()\n    for q in [\"How do transformers process sequences?\",\"Which library helps with similarity search?\"]:\n        ctxs = retrieve(q, ds, idx)\n        prompt = build_prompt(q, ctxs)\n        ans = answer(tok, llm, prompt)\n        print(\"Q:\", q); print(\"Context:\", [c[\"title\"] for c in ctxs]); print(\"A:\", ans); print()\n\nif __name__ == \"__main__\":\n    run_pipeline()\n"
+    "code": "
+from sentence_transformers import SentenceTransformer
+import faiss
+from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
+import numpy as np
+from rich import print as rprint
+
+def build_index(docs):
+    model = SentenceTransformer('all-MiniLM-L6-v2')
+    embeddings = model.encode(docs, convert_to_numpy=True)
+    d = embeddings.shape[1]
+    index = faiss.IndexFlatL2(d)
+    index.add(embeddings)
+    return index, embeddings, model
+
+
+def retrieve(index, model, query, k=2):
+    q_emb = model.encode([query], convert_to_numpy=True)
+    D, I = index.search(q_emb, k)
+    return I[0]
+
+
+def answer_question(question, docs, index, embed_model):
+    ids = retrieve(index, embed_model, question, k=2)
+    context = "\n".join([docs[i] for i in ids])
+    prompt = f"Context: {context}\nQuestion: {question}\nAnswer:"
+    model_name = "google/flan-t5-small"
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
+    inputs = tokenizer(prompt, return_tensors='pt', truncation=True, max_length=512)
+    out = model.generate(**inputs, max_new_tokens=64)
+    return tokenizer.decode(out[0], skip_special_tokens=True)
+
+
+def main():
+    docs = [
+        "The Nile is the longest river in Africa and flows through Egypt.",
+        "Mount Everest is the highest mountain in the world located in the Himalayas.",
+        "Python is a popular programming language for data science."
+    ]
+    index, embeddings, s_model = build_index(docs)
+    q = "Which language is popular for data science"
+    ans = answer_question(q, docs, index, s_model)
+    rprint("Question:", q)
+    rprint("Answer:", ans)
+
+
+if __name__ == '__main__':
+    main()
+"
   },
   {
     "id": 10,
     "title": "Optimization: Pruning & Quantization",
     "description": "Apply pruning and dynamic quantization to DistilBERT and compare speed/size.",
-    "code": "import torch, time, os\nimport torch.nn.utils.prune as prune\nfrom transformers import DistilBertForSequenceClassification, DistilBertTokenizerFast\n\n# --- Experiment 10: Prune + Quant ---\n\ndef load_model():\n    m = DistilBertForSequenceClassification.from_pretrained(\"distilbert-base-uncased\", num_labels=2)\n    t = DistilBertTokenizerFast.from_pretrained(\"distilbert-base-uncased\")\n    return m, t\n\ndef apply_pruning(m, amount=0.3):\n    for _, mod in m.named_modules():\n        if isinstance(mod, torch.nn.Linear):\n            prune.l1_unstructured(mod, name=\"weight\", amount=amount)\n    return m\n\ndef quantize(m):\n    return torch.quantization.quantize_dynamic(m, {torch.nn.Linear}, dtype=torch.qint8)\n\ndef infer_time(m, tok, text=\"This is a test.\"):\n    ids = tok(text, return_tensors=\"pt\")\n    st = time.time();\n    with torch.no_grad(): _ = m(**ids)\n    return time.time() - st\n\ndef size_mb(m, path=\"tmp.pt\"):\n    torch.save(m.state_dict(), path)\n    sz = os.path.getsize(path) / 1e6\n    os.remove(path)\n    return sz\n\ndef run_pipeline():\n    base, tok = load_model()\n    t0 = infer_time(base, tok); s0 = size_mb(base)\n    print(f\"Baseline: {t0:.4f}s, {s0:.1f} MB\")\n\n    pr = apply_pruning(base, 0.3)\n    t1 = infer_time(pr, tok); s1 = size_mb(pr)\n    print(f\"Pruned:   {t1:.4f}s, {s1:.1f} MB\")\n\n    q = quantize(base)\n    t2 = infer_time(q, tok); s2 = size_mb(q)\n    print(f\"Quantized:{t2:.4f}s, {s2:.1f} MB\")\n\nif __name__ == \"__main__\":\n    run_pipeline()\n"
+    "code": "
+import time
+import torch
+
+
+class TinyClassifier(torch.nn.Module):
+    def __init__(self, dim=128, hidden=64, out=2):
+        super().__init__()
+        self.net = torch.nn.Sequential(
+            torch.nn.Linear(dim, hidden),
+            torch.nn.ReLU(),
+            torch.nn.Linear(hidden, out)
+        )
+
+    def forward(self, x):
+        return self.net(x)
+
+
+def benchmark():
+    torch.manual_seed(0)
+    model = TinyClassifier(dim=128)
+    model.eval()
+
+    # Dynamic quantization on CPU
+    qmodel = torch.quantization.quantize_dynamic(model, {torch.nn.Linear}, dtype=torch.qint8)
+
+    # Random input
+    inputs = torch.randn(1, 128)
+
+    # Warmup
+    for _ in range(10):
+        _ = qmodel(inputs)
+
+    # Timed runs
+    iters = 100
+    t0 = time.time()
+    for _ in range(iters):
+        _ = qmodel(inputs)
+    t1 = time.time()
+    print(f"Avg inference time (quantized tiny model) = {(t1-t0)/iters*1000:.2f} ms")
+
+
+if __name__ == '__main__':
+    benchmark()
+"
   },
   {
     "id": 11,
     "title": "Bias Analysis + Output Filtering",
     "description": "Probe GPT-2 generations for gender terms and mitigate via neutral replacements.",
-    "code": "import re\nfrom transformers import GPT2LMHeadModel, GPT2Tokenizer\n\n# --- Experiment 11: Bias detect + filter ---\n\ndef load_model():\n    m = GPT2LMHeadModel.from_pretrained(\"gpt2\")\n    t = GPT2Tokenizer.from_pretrained(\"gpt2\")\n    return m, t\n\ndef generate(m, t, prompt, max_len=40):\n    ids = t.encode(prompt, return_tensors=\"pt\")\n    out = m.generate(ids, max_length=max_len, do_sample=True, top_k=50, top_p=0.95)\n    return t.decode(out[0], skip_special_tokens=True)\n\ndef detect_bias(text):\n    terms = [\" he \",\" she \",\" his \",\" her \",\" him \",\" man \",\" woman \"]\n    return {k: len(re.findall(k, text.lower())) for k in terms}\n\ndef mitigate(text):\n    repl = {\" he \":\" they \",\" she \":\" they \",\" his \":\" their \",\" her \":\" their \",\" him \":\" them \",\" man \":\" person \",\" woman \":\" person \"}\n    for k,v in repl.items(): text = text.replace(k,v)\n    return text\n\ndef run_pipeline():\n    m,t = load_model()\n    prompts = [\"The nurse is\",\"The engineer is\",\"The teacher is\",\"The doctor is\"]\n    for p in prompts:\n        txt = generate(m,t,p)\n        print(\"\\nPrompt:\", p)\n        print(\"Gen:\", txt)\n        b0 = detect_bias(txt)\n        print(\"Bias before:\", b0)\n        fixed = mitigate(txt)\n        b1 = detect_bias(fixed)\n        print(\"Filtered:\", fixed)\n        print(\"Bias after:\", b1)\n\nif __name__ == \"__main__\":\n    run_pipeline()\n"
+    "code": "
+from transformers import AutoModelForCausalLM, AutoTokenizer
+from rich import print as rprint
+
+def generate(prompt):
+    model_name = "distilgpt2"
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModelForCausalLM.from_pretrained(model_name)
+    inputs = tokenizer(prompt, return_tensors='pt')
+    out = model.generate(**inputs, max_new_tokens=30)
+    return tokenizer.decode(out[0], skip_special_tokens=True)
+
+
+def is_biased(text, blocklist=None):
+    if blocklist is None:
+        blocklist = ["stereotype", "inferior", "superior"]
+    lower = text.lower()
+    return any(b in lower for b in blocklist)
+
+
+def main():
+    prompts = [
+        "The nurse said that",
+        "The programmer who",
+        "The leader of the country is"
+    ]
+    for p in prompts:
+        out = generate(p)
+        rprint("Prompt:", p)
+        rprint("Output:", out)
+        if is_biased(out):
+            rprint("-> Detected potential bias; applying filter (redact)")
+            for b in ["stereotype", "inferior", "superior"]:
+                out = out.replace(b, "[REDACTED]")
+            rprint("Filtered:", out)
+        rprint("---"*20)
+
+
+if __name__ == '__main__':
+    main()
+"
   },
   {
     "id": 12,
     "title": "Autonomous Multi-Agent Simulation",
     "description": "Simple grid world with agents exploring, harvesting, and sharing knowledge; prints metrics.",
-    "code": "from __future__ import annotations\nimport random\nfrom dataclasses import dataclass, field\nfrom typing import Dict, List, Tuple, Set\n\nPos = Tuple[int,int]\n\n@dataclass\nclass ResourceTile:\n    pos: Pos\n    quantity: int\n\n@dataclass\nclass GridWorld:\n    width: int = 6\n    height: int = 6\n    base: Pos = (0,0)\n    resources: Dict[Pos, ResourceTile] = field(default_factory=dict)\n    def in_bounds(self,p:Pos)->bool:\n        x,y=p; return 0<=x<self.width and 0<=y<self.height\n    def harvest(self,p:Pos,amount:int=1)->int:\n        if p in self.resources and self.resources[p].quantity>0:\n            take=min(amount,self.resources[p].quantity)\n            self.resources[p].quantity-=take\n            if self.resources[p].quantity==0: del self.resources[p]\n            return take\n        return 0\n\n@dataclass\nclass Agent:\n    aid: str\n    pos: Pos\n    capacity: int = 3\n    inventory: int = 0\n    known_resources: Set[Pos] = field(default_factory=set)\n    visited: Dict[Pos,int] = field(default_factory=dict)\n    delivered: int = 0\n    discoveries: int = 0\n    messages_sent: int = 0\n    shares: int = 0\n    def sense(self, env: GridWorld):\n        if self.pos in env.resources and env.resources[self.pos].quantity>0:\n            if self.pos not in self.known_resources: self.discoveries+=1\n            self.known_resources.add(self.pos)\n        for p in list(self.known_resources):\n            if p not in env.resources: self.known_resources.discard(p)\n    def deliver_if_at_base(self, env: GridWorld):\n        if self.pos==env.base and self.inventory>0:\n            self.delivered+=self.inventory; self.inventory=0\n    def decide(self, env: GridWorld)->str:\n        if self.pos==env.base and self.inventory>0: return 'wait'\n        if self.pos in self.known_resources and self.inventory<self.capacity: return 'harvest'\n        if self.inventory>=self.capacity: return 'move'\n        if self.known_resources: return 'move'\n        return 'move'\n    def step_towards(self, target: Pos)->Pos:\n        x,y=self.pos; tx,ty=target\n        if x<tx: return (x+1,y)\n        if x>tx: return (x-1,y)\n        if y<ty: return (x, y+1)\n        if y>ty: return (x, y-1)\n        return self.pos\n    def choose_explore(self, env: GridWorld)->Pos:\n        cand=[(self.pos[0]+1,self.pos[1]),(self.pos[0]-1,self.pos[1]),(self.pos[0],self.pos[1]+1),(self.pos[0],self.pos[1]-1)]\n        cand=[p for p in cand if env.in_bounds(p)]\n        cand.sort(key=lambda p:self.visited.get(p,0))\n        mv=self.visited.get(cand[0],0) if cand else 0\n        pool=[p for p in cand if self.visited.get(p,0)==mv]\n        return random.choice(pool) if pool else self.pos\n    def nearest_resource(self, env: GridWorld)->Pos|None:\n        valid=[p for p in self.known_resources if p in env.resources]\n        if not valid:\n            self.known_resources.clear(); return None\n        x,y=self.pos\n        return min(valid, key=lambda p: abs(p[0]-x)+abs(p[1]-y))\n    def act(self, env: GridWorld):\n        choice=self.decide(env)\n        self.deliver_if_at_base(env)\n        if choice=='harvest':\n            gained=env.harvest(self.pos,1); self.inventory+=gained\n            if gained==0 and self.pos in self.known_resources: self.known_resources.discard(self.pos)\n        elif choice=='move':\n            target=env.base if self.inventory>=self.capacity else self.nearest_resource(env)\n            nxt=self.choose_explore(env) if target is None else self.step_towards(target)\n            self.pos=nxt; self.visited[self.pos]=self.visited.get(self.pos,0)+1\n    def share(self, other:'Agent'):\n        union=self.known_resources.union(other.known_resources)\n        if union!=self.known_resources or union!=other.known_resources:\n            self.shares+=1; other.shares+=1\n        self.known_resources=set(union); other.known_resources=set(union)\n        self.messages_sent+=1; other.messages_sent+=1\n\n@dataclass\nclass Result:\n    steps:int; total_delivered:int; meetings:int; total_shares:int; total_messages:int; unique_discoveries:int; efficiency:float; per_agent:Dict[str,Dict[str,int]]\n\ndef adjacent(a:Pos,b:Pos)->bool: return (abs(a[0]-b[0])+abs(a[1]-b[1]))<=1\n\ndef simulate(seed=7, steps=60, n_agents=3)->Result:\n    random.seed(seed)\n    env=GridWorld()\n    for pos in [(4,5),(3,2),(5,1),(2,4)]: env.resources[pos]=ResourceTile(pos, quantity=random.randint(3,6))\n    spawns=[(0,0),(0,5),(5,0)]; agents=[Agent(aid=f\"A{i+1}\", pos=spawns[i%len(spawns)]) for i in range(n_agents)]\n    meetings=0\n    for _ in range(steps):\n        for a in agents: a.sense(env)\n        for a in agents: a.act(env)\n        for i in range(len(agents)):\n            for j in range(i+1,len(agents)):\n                if adjacent(agents[i].pos, agents[j].pos):\n                    meetings+=1; agents[i].share(agents[j])\n    for a in agents:\n        if a.pos==env.base: a.deliver_if_at_base(env)\n    total=sum(a.delivered for a in agents)\n    shares=sum(a.shares for a in agents)\n    msgs=sum(a.messages_sent for a in agents)\n    disc=sum(a.discoveries for a in agents)\n    eff=total/max(1,steps)\n    per={a.aid:{\"delivered\":a.delivered,\"inventory_end\":a.inventory,\"discoveries\":a.discoveries,\"shares\":a.shares,\"messages_sent\":a.messages_sent} for a in agents}\n    return Result(steps,total,meetings,shares,msgs,disc,eff,per)\n\ndef analyze(r:Result):\n    print(\"=== Summary ===\")\n    print(\"Steps:\", r.steps)\n    print(\"Delivered:\", r.total_delivered)\n    print(\"Meetings:\", r.meetings)\n    print(\"Shares:\", r.total_shares)\n    print(\"Messages:\", r.total_messages)\n    print(\"Discoveries:\", r.unique_discoveries)\n    print(f\"Efficiency: {r.efficiency:.3f} per step\")\n    for k,v in r.per_agent.items(): print(k, v)\n    cr=r.total_shares/max(1,r.meetings); print(f\"Cooperation rate: {cr:.2f}\")\n\n\ndef run_pipeline():\n    r=simulate(); analyze(r)\n\nif __name__=='__main__':\n    run_pipeline()\n"
+    "code": "
+import random
+
+def simulate(steps=20):
+    actions = ["cooperate", "defect"]
+    score = {"A": 0, "B": 0}
+    history = []
+
+    for t in range(steps):
+        a1, a2 = random.choice(actions), random.choice(actions)
+        if (a1, a2) == ("cooperate", "cooperate"):
+            score["A"] += 3; score["B"] += 3
+        elif (a1, a2) == ("cooperate", "defect"):
+            score["A"] += 0; score["B"] += 5
+        elif (a1, a2) == ("defect", "cooperate"):
+            score["A"] += 5; score["B"] += 0
+        else:
+            score["A"] += 1; score["B"] += 1
+        history.append((t, a1, a2, dict(score)))
+
+    return history
+
+
+if __name__ == "__main__":
+    for h in simulate(20):
+        print(h)"
   }
 ]
